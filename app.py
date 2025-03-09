@@ -29,11 +29,18 @@ client = OpenAI(
 # 加载题库 - 实际部署时确保路径正确
 # 直接在模块级别加载数据
 stories = []
+
 try:
-    with open('/home/1137757445/turtle_soup_web/static/data/stories.json', 'r', encoding='utf-8') as f:
+    with open('/root/rzr/easy_turtle/static/data/stories.json', 'r', encoding='utf-8') as f:
         stories = json.load(f)
 except Exception as e:
     print(f"加载题库出错: {e}")
+
+# try:
+#     with open('/home/1137757445/turtle_soup_web/static/data/stories.json', 'r', encoding='utf-8') as f:
+#         stories = json.load(f)
+# except Exception as e:
+#     print(f"加载题库出错: {e}")
     # 如果无法加载，使用默认故事
     stories = [
         {
