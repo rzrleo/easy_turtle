@@ -1,0 +1,43 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海龟汤游戏</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>海龟汤游戏</h1>
+
+        <div class="controls">
+            <select id="storyDropdown">
+                <option value="" selected disabled>请选择题目</option>
+            </select>
+            <button id="revealBtn">查看答案</button>
+            <button id="quitBtn">退出游戏</button>
+        </div>
+
+        <div class="game-status">
+            <p id="attemptsLabel">剩余提问次数: 10</p>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="guessInput" placeholder="输入你的问题或猜测..." disabled>
+            <button id="submitBtn" disabled>提交</button>
+        </div>
+
+        <div class="output-area" id="outputArea">
+            <p>请选择一个题目开始游戏</p>
+        </div>
+
+        <div class="history-area" id="historyArea">
+            <h3>提问历史：</h3>
+            <div id="historyContent"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
