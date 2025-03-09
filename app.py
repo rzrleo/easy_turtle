@@ -1,16 +1,3 @@
-
-# # A very simple Flask Hello World app for you to get started with...
-
-# from flask import Flask
-
-# app = Flask(__name__)
-
-# @app.route('/')
-# def hello_world():
-#     return 'Hello from Flask!'
-
-# #
-
 # app.py - Flask后端
 from flask import Flask, render_template, request, jsonify, session
 import json
@@ -18,7 +5,8 @@ import os
 from openai import OpenAI
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # 用于session加密
+# 使用固定的secret_key而不是随机生成，避免重启服务时session失效
+app.secret_key = 'your_fixed_secret_key_here'  # 使用一个固定的密钥
 
 # 初始化DeepSeek客户端
 client = OpenAI(
@@ -26,22 +14,29 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-# 加载题库 - 实际部署时确保路径正确
-# 直接在模块级别加载数据
+# 加载题库 - 使用try-except处理不同环境的路径
 stories = []
 
-try:
-    with open('/root/rzr/easy_turtle/static/data/stories.json', 'r', encoding='utf-8') as f:
-        stories = json.load(f)
-except Exception as e:
-    print(f"加载题库出错: {e}")
+# 定义可能的路径列表
+possible_paths = [
+    '/root/rzr/easy_turtle/static/data/stories.json',
+    '/home/1137757445/turtle_soup_web/static/data/stories.json',
+    'static/data/stories.json'  # 相对路径，适用于当前工作目录
+]
 
-# try:
-#     with open('/home/1137757445/turtle_soup_web/static/data/stories.json', 'r', encoding='utf-8') as f:
-#         stories = json.load(f)
-# except Exception as e:
-#     print(f"加载题库出错: {e}")
-    # 如果无法加载，使用默认故事
+# 尝试所有可能路径
+for path in possible_paths:
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            stories = json.load(f)
+            print(f"成功从 {path} 加载题库")
+            break  # 找到有效路径后退出循环
+    except Exception as e:
+        print(f"无法从 {path} 加载题库: {e}")
+
+# 如果所有路径都失败，使用默认故事
+if not stories:
+    print("使用默认题库")
     stories = [
         {
             "title": "神秘的水果",
@@ -73,6 +68,9 @@ def get_story(story_id):
     session['game_history'] = []
     session['game_solved'] = False
 
+    # 确保session被保存
+    session.modified = True
+
     return jsonify({
         "surface": stories[story_id]['surface'],
         "message": "请提问或猜测，AI裁判将回答：是、否、无关",
@@ -82,14 +80,17 @@ def get_story(story_id):
 # 路由：提交猜测
 @app.route('/api/guess', methods=['POST'])
 def submit_guess():
-    # 获取游戏状态
+    # 获取游戏状态并添加日志调试
     story_id = session.get('current_story')
+    print(f"当前story_id: {story_id}")
+    
     attempt_count = session.get('attempt_count', 0)
     game_history = session.get('game_history', [])
     game_solved = session.get('game_solved', False)
 
     # 校验游戏状态
     if story_id is None or story_id < 0 or story_id >= len(stories):
+        print("错误：story_id无效或不存在")
         return jsonify({"error": "请先选择题目"}), 400
 
     if game_solved or attempt_count >= 10:
@@ -110,6 +111,7 @@ def submit_guess():
         guess,
         game_history
     )
+    
     # 判断是否成功
     if "SUCCESS" in judgment:
         game_solved = True
@@ -122,23 +124,12 @@ def submit_guess():
             "message": "🎉 恭喜你！成功猜出了核心内容！",
             "surface": current_story['surface'],
             "bottom": current_story['bottom'],
-            "final_guess": guess  # 这里确保保存了玩家的最终猜测
+            "final_guess": guess
         }
 
         # 只有"巨人"故事才添加特殊消息
         if current_story.get('title') == "巨人":
             result["special_message"] = "希望你能快乐健康，早日寻得良人组成爱的巨人。"
-    # # 判断是否成功
-    # if "SUCCESS" in judgment:
-    #     game_solved = True
-    #     session['game_solved'] = True
-    #     result = {
-    #         "judgment": "是",
-    #         "success": True,
-    #         "message": "🎉 恭喜你！成功猜出了核心内容！",
-    #         "surface": current_story['surface'],
-    #         "bottom": current_story['bottom']
-    #     }
     else:
         # 更新游戏状态
         attempt_count += 1
@@ -160,25 +151,11 @@ def submit_guess():
 
     # 更新历史记录
     result["history"] = game_history
-
+    
+    # 确保session被保存
+    session.modified = True
+    
     return jsonify(result)
-
-# # 路由：查看答案
-# @app.route('/api/reveal', methods=['GET'])
-# def reveal_answer():
-#     story_id = session.get('current_story')
-
-#     if story_id is None or story_id < 0 or story_id >= len(stories):
-#         return jsonify({"error": "请先选择题目"}), 400
-
-#     current_story = stories[story_id]
-#     attempt_count = session.get('attempt_count', 0)
-
-#     return jsonify({
-#         "surface": current_story['surface'],
-#         "bottom": current_story['bottom'],
-#         "attempts": attempt_count
-#     })
 
 # 路由：查看答案
 @app.route('/api/reveal', methods=['GET'])
@@ -202,6 +179,7 @@ def reveal_answer():
         result["special_message"] = "希望你能快乐健康，早日寻得良人组成爱的巨人。"
 
     return jsonify(result)
+
 # AI裁判逻辑
 def ai_judge(surface, bottom, guess, history):
     # 准备历史问答记录
@@ -243,9 +221,5 @@ def ai_judge(surface, bottom, guess, history):
         print(f"AI调用出错: {e}")
         return "无关"  # 出错时返回默认回应
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-# app.py 修改最后一行
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)  # 关闭调试模式！
+    app.run(host='0.0.0.0', port=5000, debug=False)  # 关闭调试模式
