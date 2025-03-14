@@ -10,7 +10,7 @@ app.secret_key = 'your_fixed_secret_key_here'  # 使用一个固定的密钥
 
 # 初始化DeepSeek客户端
 client = OpenAI(
-    api_key="sk-cf567b2a17ce4cf9ad7ad39789e380f4",
+    api_key="你的apikey",
     base_url="https://api.deepseek.com"
 )
 
